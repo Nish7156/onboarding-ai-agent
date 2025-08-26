@@ -1,5 +1,5 @@
 import { getCalendarClient } from "./calendarClient.js";
-import { zonedTimeToUtc } from "date-fns-tz";
+import { DateTime } from "luxon";
 
 const MEETING_DURATION = 30; // minutes
 const WORK_START_HOUR = 9;
@@ -10,41 +10,34 @@ const MAX_DAYS_LOOKAHEAD = 7;
 
 export const findFreeSlot = async () => {
   const cal = await getCalendarClient();
-  const now = new Date();
+  const now = DateTime.now().setZone(TIMEZONE);
 
   for (let dayOffset = 0; dayOffset < MAX_DAYS_LOOKAHEAD; dayOffset++) {
-    const day = new Date();
-    day.setDate(day.getDate() + dayOffset);
+    let day = now.plus({ days: dayOffset }).startOf("day");
 
     // Determine initial slotStart
-    let slotStart = new Date(day);
+    let slotStart = day;
     if (dayOffset === 0) {
-      // Today
-      if (now.getHours() >= WORK_END_HOUR) {
-        // Past work hours, skip to tomorrow
-        continue;
-      } else if (now.getHours() < WORK_START_HOUR) {
-        slotStart.setHours(WORK_START_HOUR, 0, 0, 0);
+      if (now.hour >= WORK_END_HOUR) continue; // past work hours
+      if (now.hour < WORK_START_HOUR) {
+        slotStart = day.set({ hour: WORK_START_HOUR, minute: 0 });
       } else {
-        // Current time rounded up to next increment
-        const minutes = Math.ceil(now.getMinutes() / INCREMENT) * INCREMENT;
-        slotStart.setHours(now.getHours(), minutes, 0, 0);
+        const minutes = Math.ceil(now.minute / INCREMENT) * INCREMENT;
+        slotStart = day.set({ hour: now.hour, minute: minutes });
       }
     } else {
-      // Future day
-      slotStart.setHours(WORK_START_HOUR, 0, 0, 0);
+      slotStart = day.set({ hour: WORK_START_HOUR, minute: 0 });
     }
 
-    const endOfDay = new Date(day);
-    endOfDay.setHours(WORK_END_HOUR, 0, 0, 0);
+    const endOfDay = day.set({ hour: WORK_END_HOUR, minute: 0 });
 
-    const utcSlotStart = zonedTimeToUtc(slotStart, TIMEZONE);
-    const utcEndOfDay = zonedTimeToUtc(endOfDay, TIMEZONE);
+    const utcSlotStart = slotStart.toUTC().toISO();
+    const utcEndOfDay = endOfDay.toUTC().toISO();
 
     const eventsRes = await cal.events.list({
       calendarId: "primary",
-      timeMin: utcSlotStart.toISOString(),
-      timeMax: utcEndOfDay.toISOString(),
+      timeMin: utcSlotStart,
+      timeMax: utcEndOfDay,
       singleEvents: true,
       orderBy: "startTime",
     });
@@ -53,18 +46,22 @@ export const findFreeSlot = async () => {
 
     const isFree = (start, end) => {
       return !events.some((ev) => {
-        const evStart = new Date(ev.start.dateTime || ev.start.date);
-        const evEnd = new Date(ev.end.dateTime || ev.end.date);
+        const evStart = ev.start.dateTime
+          ? DateTime.fromISO(ev.start.dateTime, { zone: TIMEZONE })
+          : DateTime.fromISO(ev.start.date + "T00:00:00", { zone: TIMEZONE });
+        const evEnd = ev.end.dateTime
+          ? DateTime.fromISO(ev.end.dateTime, { zone: TIMEZONE })
+          : DateTime.fromISO(ev.end.date + "T23:59:59", { zone: TIMEZONE });
         return start < evEnd && end > evStart;
       });
     };
 
-    while (slotStart.getTime() + MEETING_DURATION * 60 * 1000 <= endOfDay.getTime()) {
-      const slotEnd = new Date(slotStart.getTime() + MEETING_DURATION * 60 * 1000);
+    while (slotStart.plus({ minutes: MEETING_DURATION }) <= endOfDay) {
+      const slotEnd = slotStart.plus({ minutes: MEETING_DURATION });
       if (isFree(slotStart, slotEnd)) {
-        return { start: slotStart, end: slotEnd };
+        return { start: slotStart.toJSDate(), end: slotEnd.toJSDate() };
       }
-      slotStart = new Date(slotStart.getTime() + INCREMENT * 60 * 1000);
+      slotStart = slotStart.plus({ minutes: INCREMENT });
     }
   }
 
