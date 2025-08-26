@@ -112,11 +112,10 @@ app.post("/start-onboarding", async (req, res) => {
   const { goal, candidate } = req.body;
 
   const context = {
-    candidateName: "Nishant",
-    candidateEmail: "Nishant@sorigin.com",
+    candidateName: candidate?.name || "Nishant",
+    candidateEmail: candidate?.email || "Nishant@sorigin.com",
     hrName: "HR Person"
   };
-  
 
   // SSE headers
   res.setHeader("Content-Type", "text/event-stream");
@@ -124,16 +123,12 @@ app.post("/start-onboarding", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  // Helper to send progress to FE
   const sendProgress = (data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
   try {
-    // Trigger your agent
-    const results = await autonomousAgentWithMemory("onboard Nishant", context, sendProgress);
-
-    // Send final results
+    const results = await autonomousAgentWithMemory(goal || "onboard candidate", context, sendProgress);
     sendProgress({ type: "done", results });
     res.end();
   } catch (err) {
@@ -141,5 +136,6 @@ app.post("/start-onboarding", async (req, res) => {
     res.end();
   }
 });
+
 
 app.listen(5000, () => console.log("Server running on port 5000"));
