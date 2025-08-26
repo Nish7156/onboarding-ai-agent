@@ -16,6 +16,7 @@
     "@langchain/google-genai": "^0.2.16",
     "@langchain/langgraph": "^0.4.6",
     "@slack/web-api": "^7.10.0",
+    "cors": "^2.8.5",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
