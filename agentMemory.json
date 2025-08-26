@@ -1,0 +1,31 @@
+{
+  "onboardedCandidates": [
+    "Nishant@sorigin.com"
+  ],
+  "tasks": [
+    {
+      "task": "Send welcome email to Nishant",
+      "tool": "send_welcome_email",
+      "result": "📧 Welcome email successfully sent to: Nishant@sorigin.com",
+      "timestamp": "2025-08-26T14:52:43.767Z"
+    },
+    {
+      "task": "Schedule onboarding meeting with Nishant",
+      "tool": "calendar_meet",
+      "result": "✅ Meeting scheduled for Nishant on 26/08/25, 9:00 am. Google Meet link: https://meet.google.com/hrd-kajz-kxm",
+      "timestamp": "2025-08-26T14:52:43.767Z"
+    },
+    {
+      "task": "Broadcast Nishant's arrival on Slack",
+      "tool": "slack_broadcast",
+      "result": "💬 Slack message broadcasted to #onboarding-team: \"[object Object]\"",
+      "timestamp": "2025-08-26T14:52:43.767Z"
+    },
+    {
+      "task": "Order chocolates for Nishant",
+      "tool": "order_chocolates",
+      "result": "🍫 Chocolates ordered successfully from store (dummy).",
+      "timestamp": "2025-08-26T14:52:43.767Z"
+    }
+  ]
+}
